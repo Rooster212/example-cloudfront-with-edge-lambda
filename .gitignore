@@ -3,7 +3,7 @@
 *.d.ts
 node_modules
 
-!lambda/origin-request.js
+!functions/*.js
 
 # CDK asset staging directory
 .cdk.staging

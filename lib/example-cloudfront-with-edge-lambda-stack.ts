@@ -7,23 +7,20 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as targets from "aws-cdk-lib/aws-route53-targets";
 import * as cloudfront_origins from "aws-cdk-lib/aws-cloudfront-origins";
-import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Architecture, Code, Runtime } from "aws-cdk-lib/aws-lambda";
 import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
+import { addLambdaPermission } from "aws-cdk-lib/aws-events-targets";
 
 export class ExampleCloudfrontWithEdgeLambdaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const edgeFunction = new cloudfront.experimental.EdgeFunction(
-      this,
-      "ExampleEdgeFunction",
-      {
-        code: Code.fromAsset("lambda"),
-        handler: "origin-request.handler",
-        runtime: Runtime.NODEJS_18_X,
-      }
-    );
+    const rewriteFunction = new cloudfront.Function(this, "Function", {
+      code: cloudfront.FunctionCode.fromFile({
+        filePath: "functions/url-rewrite.js",
+      }),
+    });
 
     const bucket = new Bucket(this, "ExampleBucket", {
       bucketName: `rooster212-example-cloudfront-${this.account}-${this.region}`,
@@ -80,7 +77,6 @@ export class ExampleCloudfrontWithEdgeLambdaStack extends cdk.Stack {
             httpStatus: 403,
             responseHttpStatus: 403,
             responsePagePath: "/error.html",
-            ttl: cdk.Duration.minutes(5),
           },
         ],
         defaultBehavior: {
@@ -89,11 +85,11 @@ export class ExampleCloudfrontWithEdgeLambdaStack extends cdk.Stack {
             cdk.aws_cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           // Disable caching for this example, but not usually recommended.
           cachePolicy: cdk.aws_cloudfront.CachePolicy.CACHING_DISABLED,
-          // Specify our edge Lambda here
-          edgeLambdas: [
+          // Specify our Cloudfront function here
+          functionAssociations: [
             {
-              functionVersion: edgeFunction.currentVersion,
-              eventType: cdk.aws_cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+              function: rewriteFunction,
             },
           ],
         },

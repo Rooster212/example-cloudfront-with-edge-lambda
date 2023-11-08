@@ -2,6 +2,8 @@
 
 This example shows how to deploy a CloudFront origin using CDK, with a origin request Lambda. In this example I will show how to request 2 different static sites from one CloudFront distribution and S3 bucket, but this could be used for many other things such as load balanced servers, changing buckets based on region and more.
 
+This example has some HashRouter code, as I was using it to debug some `react-router-dom` code.
+
 ## Usage of OAI vs OAC
 
 Origin Access Identity is a more legacy way to allow Cloudfront to access an S3 bucket, and is discouraged by AWS.
